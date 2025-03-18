@@ -1,0 +1,8 @@
+opencv-python
+pytesseract
+pillow
+pyqt6
+reportlab
+python-docx
+argparse
+
