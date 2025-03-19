@@ -34,4 +34,3 @@ def capture_and_ocr(lang='eng'):
 
 if __name__ == "__main__":
     capture_and_ocr()
-

@@ -1,4 +1,0 @@
-[console_scripts]
-ocr-camera = src.camera_ocr:capture_and_ocr
-ocr-cli = src.cli:main
-ocr-gui = src.gui:main

@@ -8,7 +8,7 @@ setup(
     description="A locally running OCR tool with CLI and GUI support",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/yourrepo/local_ocr_tool",
+    url="https://github.com/shivjeet1/sip-dev",
     packages=find_packages(),
     install_requires=open("requirements.txt").read().splitlines(),
     entry_points={
