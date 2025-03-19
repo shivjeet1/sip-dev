@@ -1,98 +1,66 @@
 import sys
 import cv2
-import pytesseract
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader, Dataset
-from torchvision import transforms, models
+import easyocr
 from PyQt6.QtWidgets import QApplication, QLabel, QPushButton, QFileDialog, QTextEdit, QVBoxLayout, QWidget, QComboBox
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt
 from docx import Document
 from fpdf import FPDF
-from PIL import Image, ImageEnhance, ImageFilter
+from PIL import Image
 import numpy as np
+
+reader = easyocr.Reader(['en'], gpu=True)
 
 def preprocess_image(image_path):
     image = cv2.imread(image_path)
     if image is None:
         return None
-    
-    # Convert to grayscale
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    
-    # Increase contrast using CLAHE
-    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
-    enhanced = clahe.apply(gray)
-    
-    # Apply bilateral filter to preserve edges while reducing noise
-    filtered = cv2.bilateralFilter(enhanced, 9, 75, 75)
-    
-    # Adaptive Thresholding to enhance text visibility
-    thresh = cv2.adaptiveThreshold(filtered, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-    
-    return thresh
-
-class TextDetectionModel(nn.Module):
-    def __init__(self):
-        super(TextDetectionModel, self).__init__()
-        self.model = models.mobilenet_v2(pretrained=True)
-        self.model.classifier[1] = nn.Linear(self.model.last_channel, 1)
-    
-    def forward(self, x):
-        return self.model(x)
+    enhanced = cv2.equalizeHist(gray)
+    return enhanced
 
 def extract_text(image_path):
     processed_image = preprocess_image(image_path)
     if processed_image is None:
         return "Error: Could not process image."
-    
-    # Use Page Segmentation Mode 3 for better text block recognition
-    return pytesseract.image_to_string(processed_image, config='--psm 3')
+    pil_image = Image.fromarray(processed_image)
+    results = reader.readtext(np.array(pil_image), detail=0)
+    return "\n".join(results) if results else "No text detected."
 
 class OCRApp(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("OCR Tool")
+        self.setWindowTitle("OCR Tool - EasyOCR")
         self.setGeometry(100, 100, 800, 600)
         self.setStyleSheet("background-color: #2b2b2b; color: #ffffff;")
-        
         self.layout = QVBoxLayout()
-        
         self.image_label = QLabel("Drop an image or select one")
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.image_label.setStyleSheet("border: 2px dashed #ffffff; padding: 10px;")
         self.layout.addWidget(self.image_label)
-        
         self.select_button = QPushButton("Select Image")
         self.select_button.setStyleSheet("background-color: #444; padding: 8px;")
         self.select_button.clicked.connect(self.load_image)
         self.layout.addWidget(self.select_button)
-        
         self.ocr_result = QTextEdit()
         self.ocr_result.setReadOnly(True)
         self.ocr_result.setStyleSheet("background-color: #1e1e1e; color: #ffffff;")
         self.layout.addWidget(self.ocr_result)
-        
         self.format_selector = QComboBox()
         self.format_selector.addItems(["txt", "docx", "pdf"])
         self.format_selector.setStyleSheet("background-color: #444; padding: 5px; color: white;")
         self.layout.addWidget(self.format_selector)
-        
         self.save_button = QPushButton("Save Text")
         self.save_button.setStyleSheet("background-color: #555; padding: 8px;")
         self.save_button.clicked.connect(self.save_text)
         self.layout.addWidget(self.save_button)
-        
         self.close_button = QPushButton("Close Application")
         self.close_button.setStyleSheet("background-color: #aa4444; padding: 8px;")
         self.close_button.clicked.connect(self.close_application)
         self.layout.addWidget(self.close_button)
-        
         self.setAcceptDrops(True)
         self.setLayout(self.layout)
-        
+    
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
@@ -111,7 +79,6 @@ class OCRApp(QWidget):
         if not pixmap.isNull():
             self.image_label.setPixmap(pixmap.scaled(400, 300, Qt.AspectRatioMode.KeepAspectRatio))
             self.image_label.setText("")
-        
         text = extract_text(file_path)
         if text.strip() and "Error" not in text:
             self.ocr_result.setText(text)
@@ -143,8 +110,6 @@ class OCRApp(QWidget):
                         pdf.set_font("DejaVu", size=14)
                     pdf.multi_cell(0, 10, text)
                     pdf.output(file_path)
-            else:
-                print("No text to save.")
     
     def close_application(self):
         QApplication.instance().quit()
