@@ -74,7 +74,7 @@ class OCRApp(QWidget):
         self.right_panel.addWidget(self.text_heading)
 
         self.ocr_result = QTextEdit()
-        self.ocr_result.setReadOnly(True)
+        self.ocr_result.setUndoRedoEnabled(True)
         self.ocr_result.setStyleSheet("background-color: #1e1e1e; color: #ffffff;")
         self.right_panel.addWidget(self.ocr_result)
 
