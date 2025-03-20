@@ -5,20 +5,15 @@ import numpy as np
 from PIL import Image
 from docx import Document
 from fpdf import FPDF
-from PySide6.QtWidgets import (
-    QApplication, QLabel, QPushButton, QFileDialog, QTextEdit, 
-    QVBoxLayout, QHBoxLayout, QWidget, QComboBox
-)
+from PySide6.QtWidgets import ( QApplication, QLabel, QPushButton, QFileDialog, QTextEdit, QVBoxLayout, QHBoxLayout, QWidget, QComboBox )
 from PySide6.QtGui import QPixmap, QImage
 from PySide6.QtCore import Qt, QThread, Signal
 import signal
 
-# EasyOCR initialization
 reader = easyocr.Reader(['en'], gpu=True)
 
-# Thread class for running OCR in the background
 class OCRThread(QThread):
-    result_ready = Signal(str)  # Correct PySide6 signal
+    result_ready = Signal(str)
 
     def __init__(self, image_path):
         super().__init__()
@@ -28,7 +23,6 @@ class OCRThread(QThread):
         result = extract_text(self.image_path)
         self.result_ready.emit(result)
 
-# Preprocessing function
 def preprocess_image(image_path):
     image = cv2.imread(image_path)
     if image is None:
@@ -37,7 +31,6 @@ def preprocess_image(image_path):
     enhanced = cv2.equalizeHist(gray)
     return enhanced
 
-# OCR text extraction function
 def extract_text(image_path):
     processed_image = preprocess_image(image_path)
     if processed_image is None:
@@ -48,13 +41,12 @@ def extract_text(image_path):
     
     return "\n".join(results) if results else "No text detected."
 
-# Main GUI class
 class OCRApp(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("OCR Tool - EasyOCR")
+        self.setWindowTitle("Secure OCR Tool")
         self.setGeometry(100, 100, 900, 600)
-        self.setStyleSheet("background-color: #2b2b2b; color: #ffffff;")
+        self.setStyleSheet("background-color: #2b2b2b; color: #ffffff; font-size: 16px;")
 
         self.main_layout = QHBoxLayout()
 
@@ -62,14 +54,16 @@ class OCRApp(QWidget):
         self.left_panel = QVBoxLayout()
         self.image_label = QLabel("Drop an image or select one")
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.image_label.setStyleSheet("border: 2px dashed #ffffff; padding: 10px;")
-        self.left_panel.addWidget(self.image_label)
+        self.image_label.setStyleSheet("border: 2px dashed #ffffff; padding: 10px; font-size: 16px;")
+        self.image_label.setFixedSize(400, 300)
+        self.left_panel.addWidget(self.image_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.select_button = QPushButton("Select Image")
-        self.select_button.setStyleSheet("background-color: #444; padding: 8px;")
+        self.select_button.setStyleSheet("background-color: #444; padding: 8px; font-size: 16px;")
+        self.select_button.setFixedSize(200, 40)
         self.select_button.clicked.connect(self.load_image)
-        self.left_panel.addWidget(self.select_button)
-
+        self.left_panel.setSpacing(5)
+        self.left_panel.addWidget(self.select_button, alignment=Qt.AlignmentFlag.AlignCenter)
         self.main_layout.addLayout(self.left_panel)
 
         # Right Panel
@@ -86,11 +80,11 @@ class OCRApp(QWidget):
 
         self.format_selector = QComboBox()
         self.format_selector.addItems(["Save as TXT", "Save as DOCX", "Save as PDF"])
-        self.format_selector.setStyleSheet("background-color: #444; padding: 5px; color: white;")
+        self.format_selector.setStyleSheet("background-color: #444; padding: 5px; color: white; font-size: 16px;")
         self.right_panel.addWidget(self.format_selector)
 
         self.save_button = QPushButton("Save")
-        self.save_button.setStyleSheet("background-color: #555; padding: 8px;")
+        self.save_button.setStyleSheet("background-color: #555; padding: 8px; font-size: 16px;")
         self.save_button.clicked.connect(self.save_text)
         self.right_panel.addWidget(self.save_button)
 
@@ -110,13 +104,12 @@ class OCRApp(QWidget):
         self.main_container.addLayout(self.top_bar)
         self.main_container.addLayout(self.main_layout)
         self.setLayout(self.main_container)
-
         self.setAcceptDrops(True)
 
         # Splash Screen
         self.splash_screen = QLabel("Your image is being scanned...")
         self.splash_screen.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.splash_screen.setStyleSheet("font-size: 18px; font-weight: bold; color: white; background-color: rgba(0, 0, 0, 0.7);")
+        self.splash_screen.setStyleSheet("font-size: 24px; font-weight: bold; color: white; background-color: rgba(0, 0, 0, 0.7);")
         self.splash_screen.setFixedSize(300, 100)
         self.splash_screen.setVisible(False)
 
@@ -133,7 +126,6 @@ class OCRApp(QWidget):
         print("\nTerminating OCR Tool...")
         QApplication.quit()
 
-    # Drag-and-drop handling
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
@@ -142,17 +134,16 @@ class OCRApp(QWidget):
         file_path = event.mimeData().urls()[0].toLocalFile()
         self.process_image(file_path)
 
-    # Image loading
     def load_image(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Select Image", "", "Images (*.png *.jpg *.jpeg)")
         if file_path:
             self.process_image(file_path)
 
-    # Image processing
     def process_image(self, file_path):
         pixmap = QPixmap(file_path)
         self.image_label.setPixmap(pixmap.scaled(
-        self.image_label.size(),
+        self.image_label.width(),
+        self.image_label.height(),
         Qt.AspectRatioMode.KeepAspectRatio,
         Qt.TransformationMode.SmoothTransformation))
 
@@ -165,13 +156,11 @@ class OCRApp(QWidget):
         self.thread.result_ready.connect(self.display_result)
         self.thread.start()
 
-    # Display OCR result
     def display_result(self, text):
         self.overlay.setVisible(False)
         self.splash_screen.setVisible(False)
         self.ocr_result.setText(text if text.strip() else "No text detected or processing error.")
 
-    # Save the extracted text
     def save_text(self):
         file_format = self.format_selector.currentText()
         file_extension = "txt" if "TXT" in file_format else "docx" if "DOCX" in file_format else "pdf"
@@ -194,14 +183,11 @@ class OCRApp(QWidget):
                     pdf.multi_cell(0, 10, text)
                     pdf.output(file_path)
 
-    # Close the application
     def close_application(self):
         QApplication.instance().quit()
 
-# Entry point
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = OCRApp()
     window.show()
     sys.exit(app.exec())
-
