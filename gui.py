@@ -109,7 +109,7 @@ class OCRApp(QWidget):
         # Splash Screen
         self.splash_screen = QLabel("Your image is being scanned...")
         self.splash_screen.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.splash_screen.setStyleSheet("font-size: 24px; font-weight: bold; color: white; background-color: rgba(0, 0, 0, 0.7);")
+        self.splash_screen.setStyleSheet("font-size: 16px; font-weight: bold; color: white; background-color: rgba(0, 0, 0, 0.7);")
         self.splash_screen.setFixedSize(300, 100)
         self.splash_screen.setVisible(False)
 
